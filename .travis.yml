@@ -1,0 +1,31 @@
+language: python
+python:
+  - "3.5"
+
+# current requirement to run postgres 9.5 > on travis
+sudo: required
+dist: trusty
+
+addons:
+  postgresql: "9.6"
+env:
+  global:
+    - DB=postgresql
+    - PGHOST=localhost
+    - PGDATABASE=pgdabble_testing
+    - PGUSER=postgres
+cache:
+  directories:
+    - $HOME/.cache/pip/wheels
+    - $HOME/travis/virtualenv/python3.5.2
+
+install:
+  - pip install --upgrade pip
+  - pip install wheel
+  - pip install -r requirements.txt
+  - pip install -r requirements-test.txt
+  - python setup.py install
+
+script:
+  - python create_db.py
+  - py.test tests -s

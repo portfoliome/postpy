@@ -1,0 +1,7 @@
+include requirements*.txt
+include setup.py
+recursive-exclude * *.pyc *.pyo
+global-exclude .git*
+exclude .travis.yml
+include tox.ini
+include README.md

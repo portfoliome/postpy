@@ -9,7 +9,7 @@ def main():
     db_name = os.environ['PGDATABASE']
     connection_parameters = {
         'host': os.environ['PGHOST'],
-        'database': db_name,
+        'database': 'postgres',
         'user': os.environ['PGUSER'],
         'password': os.environ['PGPASSWORD']
     }

@@ -1,20 +1,17 @@
 import unittest
 
-from pgdabble.base import (Schema, Column, Table, PrimaryKey,
-                           View, make_delete_table, order_table_columns)
+from pgdabble.base import (Schema, Column, Table, PrimaryKey, View,
+                           make_delete_table, order_table_columns,
+                           split_qualified_name)
 from .common import PostgreSQLFixture, PostgresStatementFixture
 
 
 def table_columns():
-    columns = [Column(name='city',
-                      data_type='VARCHAR(50)',
-                      nullable=False),
-               Column(name='state',
-                      data_type='CHAR(2)',
-                      nullable=False),
-               Column(name='population',
-                      data_type='INTEGER',
-                      nullable=True)]
+    columns = [
+        Column(name='city', data_type='VARCHAR(50)', nullable=False),
+        Column(name='state', data_type='CHAR(2)', nullable=False),
+        Column(name='population', data_type='INTEGER', nullable=True)
+    ]
     return columns
 
 
@@ -76,7 +73,7 @@ class TestTableDDL(PostgresStatementFixture, unittest.TestCase):
     def setUp(self):
         self.schema = 'ddl_schema'
         self.tablename = 'create_table_test'
-        self.qualified_name = 'ddl.create_table_test'
+        self.qualified_name = 'ddl_schema.create_table_test'
         self.column_statement = ("city VARCHAR(50) NOT NULL,"
                                  " state CHAR(2) NOT NULL,"
                                  " population INTEGER NULL,")
@@ -137,6 +134,19 @@ class TestTableDDL(PostgresStatementFixture, unittest.TestCase):
         result = temp_table.create_temporary_statement()
 
         self.assertSQLStatementEqual(expected, result)
+
+    def test_split_qualified_name(self):
+        expected = self.schema, self.tablename
+        result = split_qualified_name(self.qualified_name)
+
+        self.assertEqual(expected, result)
+
+        expected = 'public', self.tablename
+        result = split_qualified_name(self.tablename)
+
+        self.assertEqual(expected, result)
+
+
 
 
 class TestCreateTableEvent(PostgreSQLFixture, unittest.TestCase):

@@ -147,11 +147,12 @@ def make_delete_table(table: Table, delete_prefix='delete_from__') -> Table:
     return table
 
 
-def split_qualified_name(qualified_name, schema='public'):
+def split_qualified_name(qualified_name: str, schema='public'):
     if '.' in qualified_name:
         schema, table = qualified_name.split('.')
     else:
         table = qualified_name
+
     return schema, table
 
 

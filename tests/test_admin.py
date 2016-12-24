@@ -1,9 +1,9 @@
 import unittest
 
-from pgdabble.admin import (get_user_tables,
-                            get_column_metadata,
-                            reflect_table, get_primary_keys)
-from pgdabble.base import Table, Column, PrimaryKey
+from pgdabble.admin import (get_user_tables, get_primary_keys,
+                            get_column_metadata, reflect_table, reset)
+from pgdabble.base import Database, Column, PrimaryKey, Table
+from pgdabble.connections import connect
 from .common import PostgreSQLFixture
 
 
@@ -69,3 +69,29 @@ class TestTableStats(PostgreSQLFixture, unittest.TestCase):
 
         with cls.conn.cursor() as cursor:
             cursor.execute(statement)
+
+
+class TestDatabase(unittest.TestCase):
+
+    def setUp(self):
+        self.db = Database('reset_db_test')
+        self.db_query = """SELECT datname
+                           FROM pg_database
+                           WHERE datistemplate=false;"""
+        self.conn = connect()
+        self.conn.autocommit = True
+
+    def test_reset(self):
+        reset(self.db.name)
+
+        with self.conn.cursor() as cursor:
+            cursor.execute(self.db_query)
+            result = [item[0] for item in cursor.fetchall()]
+
+        self.assertIn(self.db.name, result)
+
+    def tearDown(self):
+        with self.conn.cursor() as cursor:
+            cursor.execute(self.db.drop_statement())
+
+        self.conn.close()

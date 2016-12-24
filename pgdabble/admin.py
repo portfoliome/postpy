@@ -2,7 +2,9 @@
 Database administration queries
 """
 
-from pgdabble.base import Table, Column, PrimaryKey
+import psycopg2
+
+from pgdabble.base import Table, Column, Database, PrimaryKey
 from pgdabble.ddl import compile_qualified_name
 from pgdabble.sql import select_dict
 
@@ -71,3 +73,17 @@ def pg_stats_extension_statement():
     """postgres stats extensions statement."""
 
     return 'CREATE EXTENSION IF NOT EXISTS pg_stat_statements;'
+
+
+def reset(db_name):
+    """Reset database."""
+
+    conn = psycopg2.connect(database='postgres')
+    db = Database(db_name)
+    conn.autocommit = True
+
+    with conn.cursor() as cursor:
+        cursor.execute(db.drop_statement())
+        cursor.execute(db.create_statement())
+    conn.close()
+

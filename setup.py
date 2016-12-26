@@ -4,7 +4,7 @@ import os
 from setuptools import find_packages, setup
 
 ENCODING = 'utf-8'
-PACKAGE_NAME = 'pgdabble'
+PACKAGE_NAME = 'postpy'
 
 local_directory = os.path.abspath(os.path.dirname(__file__))
 version_path = os.path.join(local_directory, PACKAGE_NAME, '_version.py')
@@ -27,7 +27,7 @@ setup(name=PACKAGE_NAME,
       version=version_ns['__version__'],
       license='MIT',
       description='Postgresql utilities for ETL and data processing.',
-      url='https://github.com/portfoliome/pgdabble',
+      url='https://github.com/portfoliome/postpy',
       author='Philip Martin',
       author_email='philip.martin@censible.co',
       classifiers=[

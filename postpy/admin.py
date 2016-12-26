@@ -4,9 +4,9 @@ Database administration queries
 
 import psycopg2
 
-from pgdabble.base import Table, Column, Database, PrimaryKey
-from pgdabble.ddl import compile_qualified_name
-from pgdabble.sql import select_dict
+from postpy.base import Table, Column, Database, PrimaryKey
+from postpy.ddl import compile_qualified_name
+from postpy.sql import select_dict
 
 
 def get_user_tables(conn):

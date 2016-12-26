@@ -1,6 +1,6 @@
 import unittest
 
-from pgdabble import ddl
+from postpy import ddl
 from .common import PostgresStatementFixture
 
 

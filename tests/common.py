@@ -3,7 +3,7 @@ from functools import wraps
 
 from psycopg2.extras import NamedTupleCursor
 
-from pgdabble.connections import connect
+from postpy.connections import connect
 
 
 PG_UPSERT_VERSION = (9, 5)

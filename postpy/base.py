@@ -3,7 +3,7 @@ from collections import namedtuple
 from foil.formatters import format_repr
 from foil.filters import create_indexer
 
-from pgdabble.ddl import (
+from postpy.ddl import (
     compile_column, compile_qualified_name, compile_primary_key,
     compile_create_table, compile_create_temporary_table
 )

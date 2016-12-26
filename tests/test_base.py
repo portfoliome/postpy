@@ -1,8 +1,8 @@
 import unittest
 
-from pgdabble.base import (Schema, Column, Table, PrimaryKey, View,
-                           make_delete_table, order_table_columns,
-                           split_qualified_name)
+from postpy.base import (Schema, Column, Table, PrimaryKey, View,
+                         make_delete_table, order_table_columns,
+                         split_qualified_name)
 from .common import PostgreSQLFixture, PostgresStatementFixture
 
 

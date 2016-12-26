@@ -8,8 +8,8 @@ from random import randint
 
 from psycopg2.extras import NamedTupleCursor
 
-from pgdabble.base import make_delete_table, Table
-from pgdabble.sql import execute_transaction
+from postpy.base import make_delete_table, Table
+from postpy.sql import execute_transaction
 
 
 def create_insert_statement(qualified_name, column_names, table_alias=''):

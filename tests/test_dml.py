@@ -4,9 +4,9 @@ import unittest
 from collections import namedtuple
 from datetime import date
 
-from pgdabble.base import Table, Column, PrimaryKey
-from pgdabble import dml
-from pgdabble.dml import chunks
+from postpy.base import Table, Column, PrimaryKey
+from postpy import dml
+from postpy.dml import chunks
 from .common import (PostgresStatementFixture, skipPGVersionBefore,
                      get_records, PG_UPSERT_VERSION, PostgresDmlFixture,
                      fetch_one_result)

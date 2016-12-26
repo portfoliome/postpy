@@ -4,7 +4,7 @@ from typing import Iterable
 import psycopg2
 from psycopg2.extras import NamedTupleCursor, RealDictCursor
 
-from pgdabble import connect
+from postpy import connect
 
 
 def execute_transaction(conn, statements: Iterable):

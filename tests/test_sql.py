@@ -2,7 +2,7 @@ import unittest
 import psycopg2
 from collections import namedtuple
 
-from pgdabble import sql
+from postpy import sql
 from .common import PostgreSQLFixture
 
 

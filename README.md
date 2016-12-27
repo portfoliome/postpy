@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.org/portfoliome/postpy.svg?branch=master)](https://travis-ci.com/portfoliome/postpy)
+[![codecov.io](http://codecov.io/github/portfoliome/postpy/coverage.svg?branch=master)](http://codecov.io/github/portfoliome/postpy?branch=master)
+[![Code Health](https://landscape.io/github/portfoliome/postpy/master/landscape.svg?style=flat)](https://landscape.io/github/portfoliome/postpy/master)
+
 # postpy
 Postgresql utilities for ETL and data analysis.
 

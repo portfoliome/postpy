@@ -147,8 +147,6 @@ class TestTableDDL(PostgresStatementFixture, unittest.TestCase):
         self.assertEqual(expected, result)
 
 
-
-
 class TestCreateTableEvent(PostgreSQLFixture, unittest.TestCase):
     def setUp(self):
         self.tablename = 'create_table_event'

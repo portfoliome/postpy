@@ -6,10 +6,9 @@ from datetime import date
 
 from postpy.base import Table, Column, PrimaryKey
 from postpy import dml
-from postpy.dml import chunks
-from .common import (PostgresStatementFixture, skipPGVersionBefore,
-                     get_records, PG_UPSERT_VERSION, PostgresDmlFixture,
-                     fetch_one_result)
+from postpy.fixtures import (PostgresStatementFixture, skipPGVersionBefore,
+                             get_records, PG_UPSERT_VERSION, PostgresDmlFixture,
+                             fetch_one_result)
 
 
 def make_records():
@@ -312,25 +311,3 @@ class TestDeletePrimaryKeyRecords(PostgresDmlFixture, unittest.TestCase):
             for record in self.records:
                 cursor.execute(insert_statement, record)
             self.conn.commit()
-
-
-class TestChunks(unittest.TestCase):
-    def test_chunks_generator(self):
-        gen = range(0, 8)
-        chunksize = 3
-        grouped = chunks(gen, chunksize=chunksize)
-
-        expected = [(0, 1, 2), (3, 4, 5), (6, 7)]
-        result = list(tuple(g) for g in grouped)
-
-        self.assertEqual(expected, result)
-
-    def test_chunks_sequence(self):
-        seq = list(range(0, 9))
-        chunksize = 3
-        grouped = chunks(seq, chunksize=chunksize)
-
-        expected = [(0, 1, 2), (3, 4, 5), (6, 7, 8)]
-        result = [tuple(g) for g in grouped]
-
-        self.assertEqual(expected, result)

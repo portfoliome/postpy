@@ -3,7 +3,7 @@ import psycopg2
 from collections import namedtuple
 
 from postpy import sql
-from .common import PostgreSQLFixture
+from postpy.fixtures import PostgreSQLFixture
 
 
 TABLE_QUERY = ("select table_name from information_schema.tables"

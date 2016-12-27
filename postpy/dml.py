@@ -2,10 +2,9 @@
 dml.py contains the Data Manipulation Language for Postgresql Server.
 """
 
-from collections import deque
-from itertools import chain, islice
 from random import randint
 
+from foil.iteration import chunks
 from psycopg2.extras import NamedTupleCursor
 
 from postpy.base import make_delete_table, Table
@@ -306,13 +305,3 @@ def _format_force_null(column_names):
     column_str = ', '.join(column_names)
     force_null_str = 'FORCE_NULL ({})'.format(column_str)
     return force_null_str
-
-
-def chunks(items, chunksize):
-    """Turn generator sequence into sequence of chunks."""
-
-    items = iter(items)
-    for first in items:
-        chunk = chain((first,), islice(items, chunksize - 1))
-        yield chunk
-        deque(chunk, 0)

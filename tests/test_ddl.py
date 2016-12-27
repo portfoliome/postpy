@@ -1,7 +1,7 @@
 import unittest
 
 from postpy import ddl
-from .common import PostgresStatementFixture
+from postpy.fixtures import PostgresStatementFixture
 
 
 class TestCompileDDLStatements(PostgresStatementFixture, unittest.TestCase):

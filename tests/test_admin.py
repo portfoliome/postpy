@@ -4,7 +4,7 @@ from postpy.admin import (get_user_tables, get_primary_keys,
                           get_column_metadata, reflect_table, reset)
 from postpy.base import Database, Column, PrimaryKey, Table
 from postpy.connections import connect
-from .common import PostgreSQLFixture
+from postpy.fixtures import PostgreSQLFixture
 
 
 class TestTableStats(PostgreSQLFixture, unittest.TestCase):

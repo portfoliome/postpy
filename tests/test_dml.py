@@ -6,9 +6,9 @@ from datetime import date
 
 from postpy.base import Table, Column, PrimaryKey
 from postpy import dml
-from .common import (PostgresStatementFixture, skipPGVersionBefore,
-                     get_records, PG_UPSERT_VERSION, PostgresDmlFixture,
-                     fetch_one_result)
+from postpy.fixtures import (PostgresStatementFixture, skipPGVersionBefore,
+                             get_records, PG_UPSERT_VERSION, PostgresDmlFixture,
+                             fetch_one_result)
 
 
 def make_records():

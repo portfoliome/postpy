@@ -1,7 +1,8 @@
 import unittest
 
 from postpy.admin import (get_user_tables, get_primary_keys,
-                          get_column_metadata, reflect_table, reset)
+                          get_column_metadata, install_extensions,
+                          reflect_table, reset)
 from postpy.base import Database, Column, PrimaryKey, Table
 from postpy.connections import connect
 from postpy.fixtures import PostgreSQLFixture
@@ -95,3 +96,21 @@ class TestDatabase(unittest.TestCase):
             cursor.execute(self.db.drop_statement())
 
         self.conn.close()
+
+
+class TestExtensions(PostgreSQLFixture, unittest.TestCase):
+    @classmethod
+    def _prep(cls):
+        cls.pg_extension = 'sslinfo'
+        cls.conn.autocommit = True
+
+    def test_install_extensions(self):
+
+        install_extensions([self.pg_extension])
+
+    @classmethod
+    def _clean(cls):
+        statement = 'DROP EXTENSION IF EXISTS {};'.format(cls.pg_extension)
+
+        with cls.conn.cursor() as cursor:
+            cursor.execute(statement)

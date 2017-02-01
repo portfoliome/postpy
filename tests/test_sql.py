@@ -99,3 +99,11 @@ class TestSelectQueries(PostgreSQLFixture, unittest.TestCase):
         result = list(sql.query_columns(self.conn, query))
 
         self.assertEqual(expected, result)
+        query = 'select * from generate_series(1,3) as col1 where col1=%s;'
+        parameter_groups = [(3,), (2,), (1,)]
+        Record = namedtuple('Record', 'col1')
+
+        expected = [Record(col1=3), Record(col1=2), Record(col1=1)]
+        result = list(sql.select_each(self.conn, query, parameter_groups))
+
+        self.assertEqual(expected, result)

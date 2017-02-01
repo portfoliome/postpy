@@ -5,7 +5,7 @@ from psycopg2._psycopg import AsIs
 def install_extension(conn, extension: str):
     """Install Postgres extension."""
 
-    query = 'CREATE EXTENSION IF NOT EXISTS %s;'
+    query = 'CREATE EXTENSION IF NOT EXISTS "%s";'
 
     with conn.cursor() as cursor:
         cursor.execute(query, (AsIs(extension),))
@@ -34,4 +34,4 @@ def check_extension(conn, extension: str) -> bool:
     else:
         extension_version = result[0]
 
-        return True if extension_version else False
+        return bool(extension_version)

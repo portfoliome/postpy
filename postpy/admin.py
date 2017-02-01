@@ -6,6 +6,7 @@ import psycopg2
 
 from postpy.base import Table, Column, Database, PrimaryKey
 from postpy.ddl import compile_qualified_name
+from postpy.extensions import install_extension
 from postpy.sql import select_dict
 
 
@@ -69,12 +70,6 @@ def reflect_table(conn, table_name, schema='public'):
     return Table(table_name, columns, primary_key, schema=schema)
 
 
-def pg_stats_extension_statement():
-    """postgres stats extensions statement."""
-
-    return 'CREATE EXTENSION IF NOT EXISTS pg_stat_statements;'
-
-
 def reset(db_name):
     """Reset database."""
 
@@ -87,3 +82,20 @@ def reset(db_name):
         cursor.execute(db.create_statement())
     conn.close()
 
+
+def install_extensions(extensions, **connection_parameters):
+    """Install Postgres extension if available.
+
+    Notes
+    -----
+    - superuser is generally required for installing extensions.
+    - Currently does not support specific schema.
+    """
+
+    from postpy.connections import connect
+
+    conn = connect(**connection_parameters)
+    conn.autocommit = True
+
+    for extension in extensions:
+        install_extension(conn, extension)

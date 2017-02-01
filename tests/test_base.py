@@ -230,13 +230,14 @@ class TestMakeDeleteTable(unittest.TestCase):
 
 class TestReOrderTableColumns(unittest.TestCase):
     def setUp(self):
+        self.maxDiff = None
         self.schema = 'foo'
         self.table_name = 'foobar'
         columns = table_columns()
         primary_key = table_primary_keys()
         self.table = Table(self.table_name, columns, primary_key, self.schema)
 
-    def reorder_columns(self):
+    def test_reorder_columns(self):
         column_names = ['state', 'city', 'population']
 
         expect_columns = [Column('state', 'CHAR(2)', False),

@@ -1,7 +1,6 @@
 from collections import namedtuple
 
 from foil.formatters import format_repr
-from foil.filters import create_indexer
 
 from postpy.ddl import (
     compile_column, compile_qualified_name, compile_primary_key,
@@ -160,9 +159,8 @@ def order_table_columns(table: Table, column_names: list) -> Table:
     """Record table column(s) and primary key columns by specified order."""
 
     unordered_columns = table.column_names
-    index_order = [unordered_columns.index(name) for name in column_names]
-    indexer = create_indexer(index_order)
-    ordered_columns = indexer(table.columns)
+    index_order = (unordered_columns.index(name) for name in column_names)
+    ordered_columns = [table.columns[i] for i in index_order]
     ordered_pkey_names = [column for column in column_names
                           if column in table.primary_key_columns]
     primary_key = PrimaryKey(ordered_pkey_names)

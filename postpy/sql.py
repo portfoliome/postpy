@@ -78,11 +78,11 @@ def select_dict(conn, query: str, params=None, name=None, itersize=5000):
             yield result
 
 
-def select_each(conn, query: str, parameter_groups):
+def select_each(conn, query: str, parameter_groups, name=None):
     """Run select query for each parameter set in single transaction."""
 
     with conn:
-        with conn.cursor() as cursor:
+        with conn.cursor(name=name) as cursor:
             for parameters in parameter_groups:
                 cursor.execute(query, parameters)
                 yield cursor.fetchone()

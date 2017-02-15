@@ -119,7 +119,6 @@ class View:
     ----------
     name : view name
     statement: the select or join statement the view is based on.
-
     """
 
     def __init__(self, name: str, statement: str):

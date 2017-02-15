@@ -1,13 +1,11 @@
 """Data Manipulation Language for Postgresql."""
 
-from random import randint
-
 from foil.iteration import chunks
 from psycopg2.extras import NamedTupleCursor
 
-from postpy.base import make_delete_table, Table
+from postpy.base import make_delete_table
 from postpy.sql import execute_transaction
-from postpy.dml_copy import CopyFromCsv, copy_from_csv_sql
+from postpy.dml_copy import BulkDmlPrimaryKey, CopyFromCsvBase, copy_from_csv_sql
 
 
 def create_insert_statement(qualified_name, column_names, table_alias=''):
@@ -141,69 +139,6 @@ class UpsertPrimaryKey:
         upsert_records(conn, records, self.query)
 
 
-class BulkUpsertPrimaryKey:
-
-    RAND_MIN = 0
-    RAND_MAX = 100000
-    _TEMP_FORMATTER = 'tmp_bulk_upsert_{random}_{table_name}'
-
-    _INSERT_TEMPLATE = (
-        'INSERT INTO {table} ({columns})\n'
-        '  SELECT {columns} FROM {temp_table}\n'
-    )
-
-    def __init__(self, table: Table, delimiter=',', encoding='utf8',
-                 null_str='', header=True, escape_str='\\', quote_char='"',
-                 force_not_null=None, force_null=None):
-
-        self.table = table
-        self.temp_table = self.make_temp_copy_table()
-        self.upsert_query = self.make_upsert_query()
-        self.copy_sql = copy_from_csv_sql(self.temp_table.name,
-                                          delimiter, encoding,
-                                          null_str=null_str, header=header,
-                                          escape_str=escape_str,
-                                          quote_char=quote_char,
-                                          force_not_null=force_not_null,
-                                          force_null=force_null)
-
-    def __call__(self, conn, file_object):
-        with conn:
-            with conn.cursor() as cursor:
-                cursor.execute(self.temp_table.create_temporary_statement())
-                cursor.copy_expert(self.copy_sql, file_object)
-                cursor.execute(self.upsert_query)
-                cursor.execute(self.temp_table.drop_temporary_statement())
-
-    def make_upsert_query(self):
-        # Note: When upsert columns are all primary keys, it's an insert.
-        query = self._INSERT_TEMPLATE.format(
-            table=self.table.qualified_name, columns=self.column_str,
-            temp_table=self.temp_table.name
-        )
-
-        if self.table.column_names != self.table.primary_key_columns:
-            query = format_upsert_expert(query,
-                                         self.table.column_names,
-                                         self.table.primary_key_columns)
-
-        return query
-
-    def make_temp_copy_table(self):
-        rand_char = randint(self.RAND_MIN, self.RAND_MAX)
-        temp_table_name = self._TEMP_FORMATTER.format(
-            table_name=self.table.name, random=rand_char
-        )
-        table_attributes = self.table._asdict()
-        table_attributes['name'] = temp_table_name
-
-        return Table(**table_attributes)
-
-    @property
-    def column_str(self):
-        return ', '.join(self.table.column_names)
-
-
 def delete_joined_table_sql(qualified_name, removing_qualified_name, primary_key):
     """SQL statement for a joined delete from.
     Generate SQL statement for deleting the intersection of rows between
@@ -226,6 +161,58 @@ def compile_truncate_table(qualfied_name):
     """Delete all data in table and vacuum."""
 
     return 'TRUNCATE %s CASCADE;' % qualfied_name
+
+
+class CopyFrom(CopyFromCsvBase):
+    """Copy from CSV file object."""
+
+    def __call__(self, conn, file_object):
+        with conn.cursor() as cursor:
+            cursor.copy_expert(self.copy_sql, file_object)
+
+
+class CopyFromUpsert(BulkDmlPrimaryKey):
+    """Upsert subset of table rows contained in a file stream.
+
+    Upsert rows based on same composite primary key.
+    """
+
+    TEMP_PREFIX = 'tmp_bulk_upsert'
+
+    _INSERT_TEMPLATE = (
+        'INSERT INTO {table} ({columns})\n'
+        '  SELECT {columns} FROM {temp_table}\n'
+    )
+
+    def make_dml_query(self):
+        # Note: When upsert columns are all primary keys, it's an insert.
+        query = self._INSERT_TEMPLATE.format(
+            table=self.table.qualified_name, columns=self.column_str,
+            temp_table=self.copy_table.name
+        )
+
+        if self.table.column_names != self.table.primary_key_columns:
+            query = format_upsert_expert(query,
+                                         self.table.column_names,
+                                         self.table.primary_key_columns)
+
+        return query
+
+
+class CopyFromDelete(BulkDmlPrimaryKey):
+    """Deletes subset of table rows contained in a file stream.
+
+    Deletes rows with matching composite primary key.
+    """
+
+    TEMP_PREFIX = 'delete_from'
+
+    def make_dml_query(self):
+        delete_from_statement = delete_joined_table_sql(
+            self.table.qualified_name, self.copy_table.name,
+            self.table.primary_key.column_names)
+
+        return delete_from_statement
 
 
 def copy_from_csv(conn, file, qualified_name: str, delimiter=',', encoding='utf8',

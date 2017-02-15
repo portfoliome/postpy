@@ -1,7 +1,9 @@
 """Copy specific dml statement generators."""
 
 from abc import ABC, abstractmethod
+from random import randint
 
+from postpy.base import Table
 from postpy.pg_encodings import get_postgres_encoding
 
 
@@ -27,12 +29,55 @@ class CopyFromCsvBase(ABC):
         NotImplemented
 
 
-class CopyFromCsv(CopyFromCsvBase):
-    """Copy from CSV file object."""
+class BulkDmlPrimaryKey(CopyFromCsvBase):
+    """Row record changes on primary key join."""
+
+    RAND_MIN = 0
+    RAND_MAX = 10000000
+    _TEMP_FORMATTER = '{temp_prefix}_{random}_{table_name}'
+    TEMP_PREFIX = ''
+
+    def __init__(self, table, **kwargs):
+        super().__init__(table, **kwargs)
+        self.dml_query = self.make_dml_query()
 
     def __call__(self, conn, file_object):
         with conn.cursor() as cursor:
+            cursor.execute(self.copy_table.create_temporary_statement())
             cursor.copy_expert(self.copy_sql, file_object)
+            cursor.execute(self.dml_query)
+            cursor.execute(self.copy_table.drop_temporary_statement())
+
+    def get_copy_table(self, table):
+        temp_table = self.make_temp_copy_table()
+        qualified_name = temp_table.name
+
+        return temp_table, qualified_name
+
+    def make_temp_copy_table(self):
+        temp_table_name = self.generate_temp_table_name()
+        table_attributes = self.table._asdict()
+        table_attributes['name'] = temp_table_name
+
+        return Table(**table_attributes)
+
+    def generate_temp_table_name(self):
+        rand_char = randint(self.RAND_MIN, self.RAND_MAX)
+        temp_table_name = self._TEMP_FORMATTER.format(
+            temp_prefix=self.TEMP_PREFIX,
+            table_name=self.table.name,
+            random=rand_char
+        )
+
+        return temp_table_name
+
+    @property
+    def column_str(self):
+        return ', '.join(self.table.column_names)
+
+    @abstractmethod
+    def make_dml_query(self):
+        NotImplemented
 
 
 def copy_from_csv_sql(qualified_name: str, delimiter=',', encoding='utf8',

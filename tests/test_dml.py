@@ -213,20 +213,22 @@ class TestBulkUpsertPrimaryKey(PostgresDmlFixture, unittest.TestCase):
         self.delimiter = '|'
         self.force_null = ['state']
         self.null_str = ''
-
         self.insert_query = 'INSERT INTO {} VALUES (%s, %s)'.format(
             self.table_name
         )
 
-        records = [('Miami', 'TX'), ('Chicago', 'MI')]
-
         with self.conn.cursor() as cursor:
             cursor.execute(self.table.create_statement())
-            cursor.executemany(self.insert_query, records)
             self.conn.commit()
 
     @skipPGVersionBefore(*PG_UPSERT_VERSION)
     def test_bulk_upsert(self):
+        records = [('Miami', 'TX'), ('Chicago', 'MI')]
+
+        with self.conn.cursor() as cursor:
+            cursor.executemany(self.insert_query, records)
+            self.conn.commit()
+
         bulk_upserter = dml.BulkUpsertPrimaryKey(
             self.table,
             delimiter=self.delimiter, null_str=self.null_str,
@@ -235,6 +237,20 @@ class TestBulkUpsertPrimaryKey(PostgresDmlFixture, unittest.TestCase):
         file_object = io.StringIO(delimited_text())
 
         bulk_upserter(self.conn, file_object)
+
+        result = get_records(self.conn, self.table_name)
+
+        self.assertEqual(self.records, result)
+
+    def test_copy_table_from_csv(self):
+        self.columns, self.records = make_records()
+        file_object = io.StringIO(delimited_text())
+        copy_from_table = dml.CopyFromCsv(self.table, delimiter=self.delimiter,
+                                          null_str=self.null_str,
+                                          force_null=self.force_null)
+
+        with self.conn:
+            copy_from_table(self.conn, file_object)
 
         result = get_records(self.conn, self.table_name)
 

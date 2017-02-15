@@ -7,7 +7,7 @@ from psycopg2.extras import NamedTupleCursor
 
 from postpy.base import make_delete_table, Table
 from postpy.sql import execute_transaction
-from postpy.dml_copy import copy_from_csv_sql
+from postpy.dml_copy import CopyFromCsv, copy_from_csv_sql
 
 
 def create_insert_statement(qualified_name, column_names, table_alias=''):

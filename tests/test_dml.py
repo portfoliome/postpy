@@ -47,27 +47,6 @@ class TestStatementFormatting(PostgresStatementFixture, unittest.TestCase):
 
         self.assertSQLStatementEqual(expected, result)
 
-    def test_copy_from_csv_sql(self):
-        table = 'my_table'
-        delimiter = '|'
-        encoding = 'latin1'
-        force_not_null = ['foo', 'bar']
-
-        expected = ("COPY my_table FROM STDIN"
-                    "  WITH ("
-                    "    FORMAT CSV,"
-                    "    DELIMITER '|',"
-                    "    NULL 'NULL',"
-                    "    QUOTE '\"',"
-                    "    ESCAPE '\\',"
-                    "    FORCE_NOT_NULL (foo, bar),"
-                    "    ENCODING 'latin1')")
-        result = dml.copy_from_csv_sql(table, delimiter=delimiter, null_str='NULL',
-                                       header=False, encoding=encoding,
-                                       force_not_null=force_not_null)
-
-        self.assertSQLStatementEqual(expected, result)
-
     def test_compile_truncate_table(self):
         qualified_name = 'my_schema.my_table'
 
@@ -92,7 +71,7 @@ class TestInsertRecords(PostgresDmlFixture, unittest.TestCase):
             cursor.execute(create_table_stmt)
             self.conn.commit()
 
-    def test_insert_namedtuple(self):
+    def test_insert(self):
         dml.insert(self.conn, self.table_name, self.columns, self.records)
 
         expected = self.records
@@ -221,7 +200,7 @@ class TestUpsertPrimary(PostgresStatementFixture, unittest.TestCase):
         self.assertSQLStatementEqual(expected, result)
 
 
-class TestBulkUpsertPrimaryKey(PostgresDmlFixture, unittest.TestCase):
+class TestBulkCopy(PostgresDmlFixture, unittest.TestCase):
 
     def setUp(self):
         self.table_name = 'insert_record_table'
@@ -234,28 +213,45 @@ class TestBulkUpsertPrimaryKey(PostgresDmlFixture, unittest.TestCase):
         self.delimiter = '|'
         self.force_null = ['state']
         self.null_str = ''
-
         self.insert_query = 'INSERT INTO {} VALUES (%s, %s)'.format(
             self.table_name
         )
 
+        with self.conn.cursor() as cursor:
+            cursor.execute(self.table.create_statement())
+        self.conn.commit()
+
+    @skipPGVersionBefore(*PG_UPSERT_VERSION)
+    def test_upsert_many(self):
         records = [('Miami', 'TX'), ('Chicago', 'MI')]
 
         with self.conn.cursor() as cursor:
-            cursor.execute(self.table.create_statement())
             cursor.executemany(self.insert_query, records)
-            self.conn.commit()
+        self.conn.commit()
 
-    @skipPGVersionBefore(*PG_UPSERT_VERSION)
-    def test_bulk_upsert(self):
-        bulk_upserter = dml.BulkUpsertPrimaryKey(
-            self.table,
-            delimiter=self.delimiter, null_str=self.null_str,
+        bulk_upserter = dml.CopyFromUpsert(
+            self.table, delimiter=self.delimiter, null_str=self.null_str,
             force_null=self.force_null
         )
         file_object = io.StringIO(delimited_text())
 
-        bulk_upserter(self.conn, file_object)
+        with self.conn:
+            bulk_upserter(self.conn, file_object)
+
+        result = get_records(self.conn, self.table_name)
+
+        self.assertEqual(self.records, result)
+
+    def test_copy_table_from_csv(self):
+        self.columns, self.records = make_records()
+        file_object = io.StringIO(delimited_text())
+        copy_from_table = dml.CopyFrom(self.table,
+                                       delimiter=self.delimiter,
+                                       null_str=self.null_str,
+                                       force_null=self.force_null)
+
+        with self.conn:
+            copy_from_table(self.conn, file_object)
 
         result = get_records(self.conn, self.table_name)
 
@@ -293,15 +289,27 @@ class TestDeletePrimaryKeyRecords(PostgresDmlFixture, unittest.TestCase):
         self.primary_key = PrimaryKey([self.primary_key_name])
         self.table = Table(self.table_name, self.columns, self.primary_key)
         self._setup_table_data()
-        self.delete_processor = dml.DeleteManyPrimaryKey(self.table)
 
     def test_process_delete_insert(self):
-        self.delete_processor(self.conn, self.delete_records)
+        delete_processor = dml.DeleteManyPrimaryKey(self.table)
+        delete_processor(self.conn, self.delete_records)
 
         expected = set([self.records[1]])
         result = set(get_records(self.conn, self.table.qualified_name))
 
         self.assertSetEqual(expected, result)
+
+    def test_process_delete_copy(self):
+        text = '\n'.join(
+            line for index, line in enumerate(delimited_text().split('\n'))
+            if index != 2
+        )
+        delete_processor = dml.CopyFromDelete(self.table, delimiter='|',
+                                              header=True)
+        file_obj = io.StringIO(text)
+
+        with self.conn:
+            delete_processor(self.conn, file_obj)
 
     def _setup_table_data(self):
         insert_statement = 'INSERT INTO insert_test (city, state) VALUES (%s, %s)'

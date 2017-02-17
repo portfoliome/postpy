@@ -258,6 +258,62 @@ class TestBulkCopy(PostgresDmlFixture, unittest.TestCase):
         self.assertEqual(self.records, result)
 
 
+class TestBulkCopyAllColumnPrimary(PostgresDmlFixture, unittest.TestCase):
+
+    def setUp(self):
+        self.table_name = 'insert_record_table'
+        self.column_names, self.records = make_records()
+        self.records = self.records[0:1]
+        self.columns = [Column(self.column_names[0], 'VARCHAR(50)'),
+                        Column(self.column_names[1], 'CHAR(2)')]
+        self.primary_key_names = ['city', 'state']
+        self.primary_key = PrimaryKey(self.primary_key_names)
+        self.table = Table(self.table_name, self.columns, self.primary_key)
+        self.delimiter = '|'
+        self.force_null = []
+        self.null_str = ''
+        self.insert_query = 'INSERT INTO {} VALUES (%s, %s)'.format(
+            self.table_name
+        )
+
+        with self.conn.cursor() as cursor:
+            cursor.execute(self.table.create_statement())
+        self.conn.commit()
+
+    @skipPGVersionBefore(*PG_UPSERT_VERSION)
+    def test_upsert_many_primary_key(self):
+        records = [('Chicago', 'IL')]
+
+        with self.conn.cursor() as cursor:
+            cursor.executemany(self.insert_query, records)
+        self.conn.commit()
+
+        bulk_upserter = dml.CopyFromUpsert(
+            self.table, delimiter=self.delimiter, null_str=self.null_str,
+            force_null=self.force_null
+        )
+        file_object = io.StringIO('\n'.join([*delimited_text().splitlines()[0:1], '']))
+
+        with self.conn:
+            bulk_upserter(self.conn, file_object)
+
+        result = get_records(self.conn, self.table_name)
+
+        self.assertEqual(self.records, result)
+
+    @skipPGVersionBefore(*PG_UPSERT_VERSION)
+    def test_upsert_many_empty_file(self):
+        bulk_upserter = dml.CopyFromUpsert(
+            self.table, delimiter=self.delimiter, null_str=self.null_str,
+            force_null=self.force_null
+        )
+        text = '\n'.join([delimited_text().splitlines()[0], ''])
+        file_object = io.StringIO(text)
+
+        with self.conn:
+            bulk_upserter(self.conn, file_object)
+
+
 class TestDeleteRecordStatements(PostgresStatementFixture, unittest.TestCase):
 
     def test_delete_joined_table_sql(self):

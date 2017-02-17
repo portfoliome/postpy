@@ -26,12 +26,15 @@ def get_primary_keys(conn, table: str, schema='public'):
 
     query = """\
 SELECT
-  c.constraint_name as pkey_constraint_name,
-  c.column_name as column_name
+  c.constraint_name AS pkey_constraint_name,
+  c.column_name     AS column_name
 FROM
   information_schema.key_column_usage AS c
-LEFT JOIN information_schema.table_constraints AS t
-  ON t.constraint_name=c.constraint_name
+  JOIN information_schema.table_constraints AS t
+    ON t.constraint_name = c.constraint_name
+       AND t.table_catalog = c.table_catalog
+       AND t.table_schema = c.table_schema
+       AND t.table_name = c.table_name
 WHERE t.constraint_type = 'PRIMARY KEY'
   AND c.table_schema=%s
   AND c.table_name=%s;"""

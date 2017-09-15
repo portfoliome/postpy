@@ -37,7 +37,8 @@ FROM
        AND t.table_name = c.table_name
 WHERE t.constraint_type = 'PRIMARY KEY'
   AND c.table_schema=%s
-  AND c.table_name=%s;"""
+  AND c.table_name=%s
+ORDER BY c.ordinal_position"""
 
     for record in select_dict(conn, query, params=(schema, table)):
         yield record['column_name']

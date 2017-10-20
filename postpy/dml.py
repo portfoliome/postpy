@@ -99,6 +99,20 @@ def format_upsert_expert(insert_template, column_names, constraint, clause='',
     return statement
 
 
+def format_upsert_primary_key(qualified_name, column_names, primary_key_names,
+                              param_style=PYFORMAT):
+
+    if column_names != primary_key_names:
+        query = format_upsert(qualified_name, column_names, primary_key_names,
+                              param_style=param_style)
+    else:
+        # Note: When upsert columns are all primary keys, it's an insert.
+        query = create_insert_statement(qualified_name, column_names,
+                                        param_style=param_style)
+
+    return query
+
+
 class DeleteManyPrimaryKey:
     """Deletes subset of table rows.
 
@@ -134,12 +148,9 @@ class DeleteManyPrimaryKey:
 class UpsertPrimaryKey:
     def __init__(self, qualified_name, column_names, primary_key_names):
 
-        if column_names != primary_key_names:
-            self.query = format_upsert(qualified_name, column_names,
-                                       primary_key_names)
-        else:
-            # Note: When upsert columns are all primary keys, it's an insert.
-            self.query = create_insert_statement(qualified_name, column_names)
+        self.query = format_upsert_primary_key(
+            qualified_name, column_names, primary_key_names
+        )
 
     def __call__(self, conn, records):
         upsert_records(conn, records, self.query)

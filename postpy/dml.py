@@ -4,13 +4,17 @@ from foil.iteration import chunks
 from psycopg2.extras import NamedTupleCursor
 
 from postpy.base import make_delete_table
+from postpy.formatting import PARAM_STYLES, PYFORMAT
 from postpy.sql import execute_transaction
 from postpy.dml_copy import BulkDmlPrimaryKey, CopyFromCsvBase, copy_from_csv_sql
 
 
-def create_insert_statement(qualified_name, column_names, table_alias=''):
+def create_insert_statement(qualified_name, column_names, table_alias='',
+                            param_style=PYFORMAT):
+
     column_string = ', '.join(column_names)
-    value_string = ', '.join(['%s']*len(column_names))
+    param_func = PARAM_STYLES.get(param_style)
+    value_string = param_func(column_names)
 
     if table_alias:
         table_alias = ' AS %s' % table_alias
@@ -64,9 +68,11 @@ def upsert_records(conn, records, upsert_statement):
 
 
 def format_upsert(qualified_name, column_names, constraint, clause='',
-                  table_alias='current'):
-    insert_template = create_insert_statement(qualified_name, column_names,
-                                              table_alias=table_alias)
+                  table_alias='current', param_style=PYFORMAT):
+    insert_template = create_insert_statement(
+        qualified_name, column_names, table_alias=table_alias,
+        param_style=param_style
+    )
     statement = format_upsert_expert(insert_template, column_names,
                                      constraint, clause, table_alias)
     return statement
@@ -91,6 +97,20 @@ def format_upsert_expert(insert_template, column_names, constraint, clause='',
                              excluded=excluded_str, clause=clause,
                              table_alias=table_alias)
     return statement
+
+
+def format_upsert_primary_key(qualified_name, column_names, primary_key_names,
+                              param_style=PYFORMAT):
+
+    if column_names != primary_key_names:
+        query = format_upsert(qualified_name, column_names, primary_key_names,
+                              param_style=param_style)
+    else:
+        # Note: When upsert columns are all primary keys, it's an insert.
+        query = create_insert_statement(qualified_name, column_names,
+                                        param_style=param_style)
+
+    return query
 
 
 class DeleteManyPrimaryKey:
@@ -128,12 +148,9 @@ class DeleteManyPrimaryKey:
 class UpsertPrimaryKey:
     def __init__(self, qualified_name, column_names, primary_key_names):
 
-        if column_names != primary_key_names:
-            self.query = format_upsert(qualified_name, column_names,
-                                       primary_key_names)
-        else:
-            # Note: When upsert columns are all primary keys, it's an insert.
-            self.query = create_insert_statement(qualified_name, column_names)
+        self.query = format_upsert_primary_key(
+            qualified_name, column_names, primary_key_names
+        )
 
     def __call__(self, conn, records):
         upsert_records(conn, records, self.query)

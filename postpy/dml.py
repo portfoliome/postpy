@@ -1,5 +1,7 @@
 """Data Manipulation Language for Postgresql."""
 
+import warnings
+
 from foil.iteration import chunks
 from psycopg2.extras import NamedTupleCursor
 
@@ -83,32 +85,36 @@ def format_upsert_expert(insert_template, column_names, constraint, clause='',
 
     constraint_str = ', '.join(constraint)
     non_key_columns = [column for column in column_names if column not in constraint]
-    non_key_column_str = ', '.join(non_key_columns)
-    excluded_str = ', '.join('EXCLUDED.' + column for column in non_key_columns)
+
+    if non_key_columns:
+        non_key_column_str = ', '.join(non_key_columns)
+        excluded_str = ', '.join('EXCLUDED.' + column for column in non_key_columns)
+        action = (
+            ' DO UPDATE'
+            ' SET ({non_key_columns}) = ({excluded})'
+            ' {clause}').format(non_key_columns=non_key_column_str,
+                                excluded=excluded_str, clause=clause,
+                                table_alias=table_alias)
+    else:
+        action = ' DO NOTHING'
 
     statement = (
         '{insert_template}'
         ' ON CONFLICT ({constraint})'
-        ' DO UPDATE'
-        ' SET ({non_key_columns}) = ({excluded})'
-        ' {clause};').format(insert_template=insert_template,
-                             constraint=constraint_str,
-                             non_key_columns=non_key_column_str,
-                             excluded=excluded_str, clause=clause,
-                             table_alias=table_alias)
+        '{action}').format(insert_template=insert_template,
+                           constraint=constraint_str,
+                           action=action)
+
     return statement
 
 
 def format_upsert_primary_key(qualified_name, column_names, primary_key_names,
                               param_style=PYFORMAT):
+    warning = 'Deprecation Warning. Function will be removed as of version 0.1.0.'
+    warnings.warn(warning, DeprecationWarning)
 
-    if column_names != primary_key_names:
-        query = format_upsert(qualified_name, column_names, primary_key_names,
-                              param_style=param_style)
-    else:
-        # Note: When upsert columns are all primary keys, it's an insert.
-        query = create_insert_statement(qualified_name, column_names,
-                                        param_style=param_style)
+    query = format_upsert(qualified_name, column_names, primary_key_names,
+                          param_style=param_style)
 
     return query
 
@@ -148,7 +154,7 @@ class DeleteManyPrimaryKey:
 class UpsertPrimaryKey:
     def __init__(self, qualified_name, column_names, primary_key_names):
 
-        self.query = format_upsert_primary_key(
+        self.query = format_upsert(
             qualified_name, column_names, primary_key_names
         )
 
@@ -202,16 +208,12 @@ class CopyFromUpsert(BulkDmlPrimaryKey):
     )
 
     def make_dml_query(self):
-        # Note: When upsert columns are all primary keys, it's an insert.
         query = self._INSERT_TEMPLATE.format(
             table=self.table.qualified_name, columns=self.column_str,
             temp_table=self.copy_table.name
         )
-
-        if self.table.column_names != self.table.primary_key_columns:
-            query = format_upsert_expert(query,
-                                         self.table.column_names,
-                                         self.table.primary_key_columns)
+        query = format_upsert_expert(query, self.table.column_names,
+                                     self.table.primary_key_columns)
 
         return query
 

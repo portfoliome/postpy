@@ -194,7 +194,8 @@ class TestUpsertPrimary(PostgresStatementFixture, unittest.TestCase):
                                         self.columns,
                                         self.primary_keys)
 
-        expected = 'INSERT INTO foobar (foo, bar) VALUES (%s, %s)'
+        expected = ('INSERT INTO foobar AS current (foo, bar) VALUES (%s, %s)'
+                    ' ON CONFLICT (foo, bar) DO NOTHING')
         result = upserter.query
 
         self.assertSQLStatementEqual(expected, result)
